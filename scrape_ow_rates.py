@@ -2,110 +2,60 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime
-import time
+import re
 
 def parse_hero_stats(html_content):
-    """Parse hero statistics from HTML"""
+    """Parse hero statistics using regex from the concatenated text"""
     soup = BeautifulSoup(html_content, 'html.parser')
     heroes = []
     
     # Get all text content
     text = soup.get_text()
     
-    # Split into lines and clean
-    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    print(f"Content length: {len(text)} characters")
     
-    print(f"Total lines found: {len(lines)}")
+    # Find the section between "HeroPick RateWin Rate" and "Frequently Asked Questions"
+    hero_section_match = re.search(
+        r'HeroPick RateWin Rate(.+?)Frequently Asked Questions',
+        text,
+        re.DOTALL
+    )
     
-    # Debug: Print first 50 lines to see structure
-    print("\n--- First 50 lines of content ---")
-    for i, line in enumerate(lines[:50]):
-        print(f"{i}: {line}")
-    print("--- End of debug output ---\n")
+    if not hero_section_match:
+        print("ERROR: Could not find hero data section")
+        return heroes
     
-    # Find the data section - look for "HeroPick RateWin Rate"
-    try:
-        start_idx = None
-        
-        # Try to find the header in different ways
-        for i, line in enumerate(lines):
-            # Check if line contains all three keywords
-            if 'Hero' in line and 'Pick' in line and 'Win' in line:
-                print(f"Found potential header at line {i}: {line}")
-                start_idx = i + 1
-                break
-        
-        if start_idx is None:
-            # Try looking for just "Hero" followed by percentages
-            for i, line in enumerate(lines):
-                if line == 'Hero':
-                    # Check if next few lines look like data
-                    if i + 3 < len(lines) and '%' in lines[i + 2]:
-                        print(f"Found 'Hero' at line {i}, assuming data starts after")
-                        start_idx = i + 1
-                        break
-        
-        if start_idx is None:
-            print("ERROR: Could not find start of hero data")
-            print("Searched for: 'Hero', 'Pick', 'Win' keywords")
-            return heroes
-        
-        print(f"Data starts at line {start_idx}")
-        
-        # Find where data ends
-        end_idx = len(lines)
-        end_markers = [
-            'Frequently Asked Questions',
-            'What patch is',
-            'The future is worth'
-        ]
-        
-        for i in range(start_idx, len(lines)):
-            for marker in end_markers:
-                if marker in lines[i]:
-                    end_idx = i
-                    print(f"Found end marker '{marker}' at line {i}")
-                    break
-            if end_idx < len(lines):
-                break
-        
-        print(f"Data ends at line {end_idx}")
-        
-        # Extract hero data
-        hero_lines = lines[start_idx:end_idx]
-        print(f"\nProcessing {len(hero_lines)} lines of hero data...")
-        
-        # Show sample of hero lines
-        print(f"Sample hero lines:")
-        for i in range(min(15, len(hero_lines))):
-            print(f"  {i}: {hero_lines[i]}")
-        
-        # Parse in groups of 3: name, pick rate, win rate
-        i = 0
-        while i < len(hero_lines) - 2:
-            name = hero_lines[i]
-            pick = hero_lines[i + 1]
-            win = hero_lines[i + 2]
-            
-            # Check if this looks like valid hero data
-            if '%' in pick and '%' in win:
-                heroes.append({
-                    'name': name,
-                    'pickRate': pick,
-                    'winRate': win
-                })
-                print(f"  Added: {name} | {pick} | {win}")
-                i += 3
-            else:
-                i += 1
-        
-        print(f"\nSuccessfully parsed {len(heroes)} heroes")
-        
-    except Exception as e:
-        print(f"ERROR parsing hero data: {e}")
-        import traceback
-        traceback.print_exc()
+    hero_data = hero_section_match.group(1)
+    print(f"Found hero data section: {len(hero_data)} characters")
     
+    # Pattern: HeroName followed by PickRate% followed by WinRate%
+    # Example: Ana46.9%22.6%
+    # We need to match: Word(s) followed by Number% followed by Number%
+    
+    # This regex matches: any characters (hero name) followed by XX.X% followed by XX.X%
+    pattern = r'([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
+    
+    matches = re.findall(pattern, hero_data)
+    
+    print(f"Found {len(matches)} potential hero entries")
+    
+    for match in matches:
+        name = match[0].strip()
+        pick_rate = match[1]
+        win_rate = match[2]
+        
+        # Skip if name is too short or contains suspicious patterns
+        if len(name) < 2 or name in ['All', 'PC', 'Role']:
+            continue
+        
+        heroes.append({
+            'name': name,
+            'pickRate': pick_rate,
+            'winRate': win_rate
+        })
+        print(f"  ✓ {name}: {pick_rate} pick, {win_rate} win")
+    
+    print(f"\nSuccessfully parsed {len(heroes)} heroes")
     return heroes
 
 def filter_heroes_by_role(heroes, role):
@@ -139,7 +89,7 @@ def filter_heroes_by_role(heroes, role):
     else:
         return heroes
     
-    print(f"Filtered {len(heroes)} heroes to {len(filtered)} {role} heroes")
+    print(f"Filtered to {len(filtered)} {role} heroes")
     return filtered
 
 def scrape_all_heroes(region='Europe'):
@@ -147,46 +97,37 @@ def scrape_all_heroes(region='Europe'):
     
     url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region={region}&role=All&rq=2&tier=All"
     
-    print(f"\nFetching data from Blizzard...")
-    print(f"URL: {url}\n")
+    print(f"\nFetching from: {url}\n")
     
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     
     try:
         response = requests.get(url, headers=headers, timeout=30)
         
         print(f"HTTP Status: {response.status_code}")
-        print(f"Content length: {len(response.content)} bytes")
         
         if response.status_code == 200:
-            heroes = parse_hero_stats(response.content)
-            return heroes
+            return parse_hero_stats(response.content)
         else:
             print(f"❌ Failed: HTTP {response.status_code}")
             return []
             
     except Exception as e:
         print(f"❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
         return []
 
 def main():
     print("=" * 70)
-    print("Overwatch Stats Scraper - DEBUG MODE")
+    print("Overwatch Stats Scraper")
     print("=" * 70)
     
     # Scrape all heroes
     all_heroes = scrape_all_heroes()
     
     if not all_heroes:
-        print("\n" + "=" * 70)
-        print("❌ FAILED - No heroes scraped")
-        print("=" * 70)
+        print("\n❌ FAILED - No heroes scraped")
         exit(1)
     
     # Build final data structure
@@ -209,8 +150,8 @@ def main():
     total = sum(len(heroes) for heroes in data['roles'].values())
     
     # Save to JSON
-    with open('ow_rates.json', 'w') as f:
-        json.dump(data, f, indent=2)
+    with open('ow_rates.json', 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
     
     print("\n" + "=" * 70)
     print(f"✅ SUCCESS! Scraped {total} heroes")
@@ -222,3 +163,29 @@ def main():
 
 if __name__ == '__main__':
     main()
+```
+
+---
+
+## **What Changed:**
+
+1. **Uses regex** to extract hero data from the concatenated string
+2. **Pattern:** `([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)`
+   - Captures: Hero name + Pick Rate% + Win Rate%
+   - Example: `Ana46.9%22.6%` → `("Ana", "46.9%", "22.6%")`
+3. **Finds the data section** between `HeroPick RateWin Rate` and `Frequently Asked Questions`
+4. **Filters out junk** (names too short, suspicious patterns)
+
+---
+
+## **Update and Test:**
+
+1. **Replace** `scrape_ow_rates.py` in your GitHub repo with this version
+2. **Run workflow** again
+3. **Should see output like:**
+```
+   ✓ Ana: 46.9% pick, 22.6% win
+   ✓ Tracer: 49.7% pick, 4.0% win
+   ✓ Reinhardt: 52.3% pick, 12.3% win
+   ...
+   ✅ SUCCESS! Scraped 50 heroes
