@@ -4,6 +4,8 @@ import json
 from datetime import datetime
 import re
 
+SOURCE_URL = "https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All"
+
 def parse_hero_stats(html_content):
     """Parse hero statistics using regex from the concatenated text"""
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -28,18 +30,28 @@ def parse_hero_stats(html_content):
     hero_data = hero_section_match.group(1)
     print(f"Found hero data section: {len(hero_data)} characters")
     
-    # Pattern: HeroName followed by PickRate% followed by WinRate%
-    # Example: Ana46.9%22.6%
+    # Pattern: HeroName followed by two percentage values.
+    # The percentage order can differ depending on how page text gets flattened,
+    # so we derive the mapping from the detected header order.
     pattern = r'([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
-    
+
     matches = re.findall(pattern, hero_data)
-    
+
+    header_match = re.search(r'Hero\s*(Pick Rate|Win Rate)\s*(Pick Rate|Win Rate)', text)
+    header_order = (header_match.group(1), header_match.group(2)) if header_match else ('Pick Rate', 'Win Rate')
+    print(f"Detected header order: {header_order[0]} then {header_order[1]}")
+
     print(f"Found {len(matches)} potential hero entries")
-    
+
     for match in matches:
         name = match[0].strip()
-        pick_rate = match[1]
-        win_rate = match[2]
+
+        first_rate = match[1]
+        second_rate = match[2]
+        if header_order == ('Win Rate', 'Pick Rate'):
+            win_rate, pick_rate = first_rate, second_rate
+        else:
+            pick_rate, win_rate = first_rate, second_rate
         
         # Skip if name is too short or contains suspicious patterns
         if len(name) < 2 or name in ['All', 'PC', 'Role']:
@@ -89,10 +101,8 @@ def filter_heroes_by_role(heroes, role):
     print(f"Filtered to {len(filtered)} {role} heroes")
     return filtered
 
-def scrape_all_heroes(region='Europe'):
-    """Scrape all hero statistics"""
-    
-    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region={region}&role=All&rq=2&tier=All"
+def scrape_all_heroes(url=SOURCE_URL):
+    """Scrape all hero statistics from the provided Blizzard rates URL."""
     
     print(f"\nFetching from: {url}\n")
     
@@ -120,7 +130,7 @@ def main():
     print("Overwatch Stats Scraper")
     print("=" * 70)
     
-    all_heroes = scrape_all_heroes()
+    all_heroes = scrape_all_heroes(SOURCE_URL)
     
     if not all_heroes:
         print("\nFailed to scrape heroes")
@@ -129,6 +139,7 @@ def main():
     data = {
         'lastUpdated': datetime.now().isoformat(),
         'source': 'Blizzard Entertainment Official Stats',
+        'sourceUrl': SOURCE_URL,
         'region': 'Europe',
         'tier': 'All Tiers',
         'gameMode': 'Competitive - Role Queue',
