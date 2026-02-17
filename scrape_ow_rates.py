@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 import time
-import re
 
 def parse_hero_stats(html_content):
     """Parse hero statistics from HTML"""
@@ -16,103 +15,102 @@ def parse_hero_stats(html_content):
     # Split into lines and clean
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     
-    # Find the data section
+    print(f"Total lines found: {len(lines)}")
+    
+    # Debug: Print first 50 lines to see structure
+    print("\n--- First 50 lines of content ---")
+    for i, line in enumerate(lines[:50]):
+        print(f"{i}: {line}")
+    print("--- End of debug output ---\n")
+    
+    # Find the data section - look for "HeroPick RateWin Rate"
     try:
-        # Look for the table header
         start_idx = None
+        
+        # Try to find the header in different ways
         for i, line in enumerate(lines):
-            if 'HeroPick RateWin Rate' in line or line == 'HeroPick RateWin Rate':
+            # Check if line contains all three keywords
+            if 'Hero' in line and 'Pick' in line and 'Win' in line:
+                print(f"Found potential header at line {i}: {line}")
                 start_idx = i + 1
                 break
         
         if start_idx is None:
-            print("Could not find 'HeroPick RateWin Rate' header")
+            # Try looking for just "Hero" followed by percentages
+            for i, line in enumerate(lines):
+                if line == 'Hero':
+                    # Check if next few lines look like data
+                    if i + 3 < len(lines) and '%' in lines[i + 2]:
+                        print(f"Found 'Hero' at line {i}, assuming data starts after")
+                        start_idx = i + 1
+                        break
+        
+        if start_idx is None:
+            print("ERROR: Could not find start of hero data")
+            print("Searched for: 'Hero', 'Pick', 'Win' keywords")
             return heroes
         
-        # Find where hero data ends (FAQ section)
+        print(f"Data starts at line {start_idx}")
+        
+        # Find where data ends
         end_idx = len(lines)
         end_markers = [
             'Frequently Asked Questions',
-            'What patch is this data from?',
-            'The future is worth fighting for'
+            'What patch is',
+            'The future is worth'
         ]
         
-        for marker in end_markers:
-            for i in range(start_idx, len(lines)):
+        for i in range(start_idx, len(lines)):
+            for marker in end_markers:
                 if marker in lines[i]:
-                    end_idx = min(end_idx, i)
+                    end_idx = i
+                    print(f"Found end marker '{marker}' at line {i}")
                     break
+            if end_idx < len(lines):
+                break
         
-        # Extract hero data (groups of 3: name, pick rate, win rate)
+        print(f"Data ends at line {end_idx}")
+        
+        # Extract hero data
         hero_lines = lines[start_idx:end_idx]
+        print(f"\nProcessing {len(hero_lines)} lines of hero data...")
         
-        print(f"Found {len(hero_lines)} lines of data between indices {start_idx} and {end_idx}")
+        # Show sample of hero lines
+        print(f"Sample hero lines:")
+        for i in range(min(15, len(hero_lines))):
+            print(f"  {i}: {hero_lines[i]}")
         
+        # Parse in groups of 3: name, pick rate, win rate
         i = 0
         while i < len(hero_lines) - 2:
             name = hero_lines[i]
             pick = hero_lines[i + 1]
             win = hero_lines[i + 2]
             
-            # Validate this is hero data (both should have %)
+            # Check if this looks like valid hero data
             if '%' in pick and '%' in win:
                 heroes.append({
                     'name': name,
                     'pickRate': pick,
                     'winRate': win
                 })
+                print(f"  Added: {name} | {pick} | {win}")
                 i += 3
             else:
-                # Not valid hero data, skip this line
                 i += 1
         
-        print(f"Successfully parsed {len(heroes)} heroes")
+        print(f"\nSuccessfully parsed {len(heroes)} heroes")
         
     except Exception as e:
-        print(f"Error parsing hero data: {e}")
+        print(f"ERROR parsing hero data: {e}")
+        import traceback
+        traceback.print_exc()
     
     return heroes
-
-def scrape_role(role, region='Europe'):
-    """Scrape statistics for a specific role"""
-    
-    # Note: Blizzard's page shows ALL heroes regardless of role filter
-    # The role filter just highlights them in the UI but returns all data
-    # So we'll scrape with role=All and filter client-side
-    
-    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region={region}&role={role}&rq=2&tier=All"
-    
-    print(f"\nScraping {role} heroes from {region}...")
-    print(f"URL: {url}")
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=30)
-        
-        if response.status_code == 200:
-            heroes = parse_hero_stats(response.content)
-            
-            # Filter by role if not "All"
-            if role != 'All':
-                heroes = filter_heroes_by_role(heroes, role)
-            
-            print(f"✅ Found {len(heroes)} {role} heroes")
-            return heroes
-        else:
-            print(f"❌ Failed: HTTP {response.status_code}")
-            return []
-            
-    except Exception as e:
-        print(f"❌ Error scraping {role}: {e}")
-        return []
 
 def filter_heroes_by_role(heroes, role):
     """Filter heroes by their actual role"""
     
-    # Define hero roles (based on Overwatch 2 roster)
     TANK_HEROES = [
         'D.Va', 'Doomfist', 'Domina', 'Hazard', 'Junker Queen', 'Mauga', 
         'Orisa', 'Ramattra', 'Reinhardt', 'Roadhog', 'Sigma', 
@@ -133,19 +131,65 @@ def filter_heroes_by_role(heroes, role):
     ]
     
     if role == 'Tank':
-        return [h for h in heroes if h['name'] in TANK_HEROES]
+        filtered = [h for h in heroes if h['name'] in TANK_HEROES]
     elif role == 'Damage':
-        return [h for h in heroes if h['name'] in DAMAGE_HEROES]
+        filtered = [h for h in heroes if h['name'] in DAMAGE_HEROES]
     elif role == 'Support':
-        return [h for h in heroes if h['name'] in SUPPORT_HEROES]
+        filtered = [h for h in heroes if h['name'] in SUPPORT_HEROES]
     else:
         return heroes
+    
+    print(f"Filtered {len(heroes)} heroes to {len(filtered)} {role} heroes")
+    return filtered
+
+def scrape_all_heroes(region='Europe'):
+    """Scrape all hero statistics"""
+    
+    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region={region}&role=All&rq=2&tier=All"
+    
+    print(f"\nFetching data from Blizzard...")
+    print(f"URL: {url}\n")
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        print(f"HTTP Status: {response.status_code}")
+        print(f"Content length: {len(response.content)} bytes")
+        
+        if response.status_code == 200:
+            heroes = parse_hero_stats(response.content)
+            return heroes
+        else:
+            print(f"❌ Failed: HTTP {response.status_code}")
+            return []
+            
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 def main():
-    print("=" * 60)
-    print("Overwatch Stats Scraper")
-    print("=" * 60)
+    print("=" * 70)
+    print("Overwatch Stats Scraper - DEBUG MODE")
+    print("=" * 70)
     
+    # Scrape all heroes
+    all_heroes = scrape_all_heroes()
+    
+    if not all_heroes:
+        print("\n" + "=" * 70)
+        print("❌ FAILED - No heroes scraped")
+        print("=" * 70)
+        exit(1)
+    
+    # Build final data structure
     data = {
         'lastUpdated': datetime.now().isoformat(),
         'source': 'Blizzard Entertainment Official Stats',
@@ -154,37 +198,27 @@ def main():
         'gameMode': 'Competitive - Role Queue',
         'platform': 'PC (Mouse & Keyboard)',
         'disclaimer': 'Not affiliated with or endorsed by Blizzard Entertainment',
-        'roles': {}
+        'roles': {
+            'Tank': filter_heroes_by_role(all_heroes, 'Tank'),
+            'Damage': filter_heroes_by_role(all_heroes, 'Damage'),
+            'Support': filter_heroes_by_role(all_heroes, 'Support'),
+        }
     }
     
-    # Scrape all heroes once (they're all on the same page)
-    print("\nFetching hero data...")
-    all_heroes = scrape_role('All')
-    
-    if not all_heroes:
-        print("\n❌ Failed to scrape any heroes!")
-        print("Check if Blizzard's page structure has changed.")
-        exit(1)
-    
-    # Filter by role
-    data['roles']['Tank'] = filter_heroes_by_role(all_heroes, 'Tank')
-    data['roles']['Damage'] = filter_heroes_by_role(all_heroes, 'Damage')
-    data['roles']['Support'] = filter_heroes_by_role(all_heroes, 'Support')
-    
     # Calculate totals
-    total_heroes = sum(len(heroes) for heroes in data['roles'].values())
+    total = sum(len(heroes) for heroes in data['roles'].values())
     
     # Save to JSON
     with open('ow_rates.json', 'w') as f:
         json.dump(data, f, indent=2)
     
-    print("\n" + "=" * 60)
-    print(f"✅ SUCCESS! Scraped {total_heroes} heroes")
+    print("\n" + "=" * 70)
+    print(f"✅ SUCCESS! Scraped {total} heroes")
     print(f"   Tank: {len(data['roles']['Tank'])} heroes")
     print(f"   Damage: {len(data['roles']['Damage'])} heroes")
     print(f"   Support: {len(data['roles']['Support'])} heroes")
     print("📄 Saved to ow_rates.json")
-    print("=" * 60)
+    print("=" * 70)
 
 if __name__ == '__main__':
     main()
