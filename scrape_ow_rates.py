@@ -30,9 +30,6 @@ def parse_hero_stats(html_content):
     
     # Pattern: HeroName followed by PickRate% followed by WinRate%
     # Example: Ana46.9%22.6%
-    # We need to match: Word(s) followed by Number% followed by Number%
-    
-    # This regex matches: any characters (hero name) followed by XX.X% followed by XX.X%
     pattern = r'([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
     
     matches = re.findall(pattern, hero_data)
@@ -111,11 +108,11 @@ def scrape_all_heroes(region='Europe'):
         if response.status_code == 200:
             return parse_hero_stats(response.content)
         else:
-            print(f"❌ Failed: HTTP {response.status_code}")
+            print(f"Failed: HTTP {response.status_code}")
             return []
             
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         return []
 
 def main():
@@ -123,14 +120,12 @@ def main():
     print("Overwatch Stats Scraper")
     print("=" * 70)
     
-    # Scrape all heroes
     all_heroes = scrape_all_heroes()
     
     if not all_heroes:
-        print("\n❌ FAILED - No heroes scraped")
+        print("\nFailed to scrape heroes")
         exit(1)
     
-    # Build final data structure
     data = {
         'lastUpdated': datetime.now().isoformat(),
         'source': 'Blizzard Entertainment Official Stats',
@@ -146,46 +141,18 @@ def main():
         }
     }
     
-    # Calculate totals
     total = sum(len(heroes) for heroes in data['roles'].values())
     
-    # Save to JSON
     with open('ow_rates.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     
     print("\n" + "=" * 70)
-    print(f"✅ SUCCESS! Scraped {total} heroes")
+    print(f"SUCCESS! Scraped {total} heroes")
     print(f"   Tank: {len(data['roles']['Tank'])} heroes")
     print(f"   Damage: {len(data['roles']['Damage'])} heroes")
     print(f"   Support: {len(data['roles']['Support'])} heroes")
-    print("📄 Saved to ow_rates.json")
+    print("Saved to ow_rates.json")
     print("=" * 70)
 
 if __name__ == '__main__':
     main()
-```
-
----
-
-## **What Changed:**
-
-1. **Uses regex** to extract hero data from the concatenated string
-2. **Pattern:** `([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)`
-   - Captures: Hero name + Pick Rate% + Win Rate%
-   - Example: `Ana46.9%22.6%` → `("Ana", "46.9%", "22.6%")`
-3. **Finds the data section** between `HeroPick RateWin Rate` and `Frequently Asked Questions`
-4. **Filters out junk** (names too short, suspicious patterns)
-
----
-
-## **Update and Test:**
-
-1. **Replace** `scrape_ow_rates.py` in your GitHub repo with this version
-2. **Run workflow** again
-3. **Should see output like:**
-```
-   ✓ Ana: 46.9% pick, 22.6% win
-   ✓ Tracer: 49.7% pick, 4.0% win
-   ✓ Reinhardt: 52.3% pick, 12.3% win
-   ...
-   ✅ SUCCESS! Scraped 50 heroes
