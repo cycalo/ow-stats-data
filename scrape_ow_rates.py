@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 import re
+import sys
 
 def parse_hero_stats(html_content):
     """Parse hero statistics using regex from the concatenated text"""
@@ -23,37 +24,74 @@ def parse_hero_stats(html_content):
     
     if not hero_section_match:
         print("ERROR: Could not find hero data section")
+        print("Dumping first 1000 chars of text:")
+        print(text[:1000])
         return heroes
     
     hero_data = hero_section_match.group(1)
     print(f"Found hero data section: {len(hero_data)} characters")
     
-    # Pattern: HeroName followed by two percentages
-    pattern = r'([A-Za-z][A-Za-z\s:\.]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
+    # UPDATED PATTERN: Much more permissive to catch all hero names
+    # Matches: Any characters (including special chars, numbers, colons, spaces)
+    # followed by two percentages
+    # Example matches:
+    # - "Ana46.9%22.6%"
+    # - "Soldier: 7648.9%18.4%"
+    # - "Torbjörn47.6%3%"
+    # - "Lúcio51%7.6%"
+    pattern = r'([^0-9]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
     
     matches = re.findall(pattern, hero_data)
     
     print(f"Found {len(matches)} potential hero entries")
     
+    if len(matches) == 0:
+        print("ERROR: No matches found")
+        print("Hero data content:")
+        print(hero_data[:500])
+        return heroes
+    
+    # Filter out junk matches
     for match in matches:
         name = match[0].strip()
-        first_percent = match[1]   # This is actually WIN RATE
-        second_percent = match[2]  # This is actually PICK RATE
+        first_percent = match[1]   # This is WIN RATE
+        second_percent = match[2]  # This is PICK RATE
         
-        # Skip if name is too short or contains suspicious patterns
-        if len(name) < 2 or name in ['All', 'PC', 'Role']:
+        # Skip if name is too short
+        if len(name) < 2:
+            continue
+            
+        # Skip common false positives
+        skip_terms = [
+            'All', 'PC', 'Role', 'Map', 'Region', 'Input', 'Game Mode',
+            'Tier', 'Quick Play', 'Competitive', 'Bronze', 'Silver', 'Gold',
+            'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Champion',
+            'Mouse', 'Keyboard', 'Controller', 'Americas', 'Asia', 'Europe',
+            'Pick Rate', 'Win Rate', 'Hero'
+        ]
+        
+        if any(term in name for term in skip_terms):
             continue
         
-        # CORRECTED: Despite the header saying "Pick Rate Win Rate",
-        # the actual data order is: Hero Name, Win Rate, Pick Rate
+        # Skip if name contains numbers (except for "Soldier: 76")
+        if any(char.isdigit() for char in name) and 'Soldier' not in name:
+            continue
+        
+        # Data order from Blizzard: Hero Name, Win Rate, Pick Rate
+        # But we want: Hero Name, Pick Rate, Win Rate
         heroes.append({
             'name': name,
-            'pickRate': second_percent,  # ← SWAPPED
-            'winRate': first_percent      # ← SWAPPED
+            'pickRate': second_percent,  # SWAPPED
+            'winRate': first_percent     # SWAPPED
         })
-        print(f"  Added: {name}: pick={second_percent}, win={first_percent}")
     
-    print(f"\nSuccessfully parsed {len(heroes)} heroes")
+    print(f"Successfully parsed {len(heroes)} heroes")
+    
+    # Debug: print all hero names found
+    print("\nHeroes found:")
+    for hero in heroes:
+        print(f"  - {hero['name']}: pick={hero['pickRate']}, win={hero['winRate']}")
+    
     return heroes
 
 def filter_heroes_by_role(heroes, role):
@@ -66,14 +104,14 @@ def filter_heroes_by_role(heroes, role):
     ]
     
     DAMAGE_HEROES = [
-        'Anran', 'Ashe', 'Bastion', 'Cassidy', 'Echo', 'Emre', 'Genji', 
+        'Anran', 'Ashe', 'Bastion', 'Cassidy', 'Echo', 'Emre', 'Freja', 'Genji', 
         'Hanzo', 'Junkrat', 'Mei', 'Pharah', 'Reaper', 'Sojourn', 
         'Soldier: 76', 'Sombra', 'Symmetra', 'Torbjörn', 'Tracer', 
         'Vendetta', 'Venture', 'Widowmaker'
     ]
     
     SUPPORT_HEROES = [
-        'Ana', 'Baptiste', 'Brigitte', 'Freja', 'Illari', 'Jetpack Cat', 
+        'Ana', 'Baptiste', 'Brigitte', 'Illari', 'Jetpack Cat', 
         'Juno', 'Kiriko', 'Lifeweaver', 'Lúcio', 'Mercy', 'Mizuki', 
         'Moira', 'Wuyang', 'Zenyatta'
     ]
@@ -88,6 +126,20 @@ def filter_heroes_by_role(heroes, role):
         return heroes
     
     print(f"Filtered to {len(filtered)} {role} heroes")
+    
+    # Check for missing heroes
+    if role == 'Tank':
+        expected = TANK_HEROES
+    elif role == 'Damage':
+        expected = DAMAGE_HEROES
+    else:
+        expected = SUPPORT_HEROES
+    
+    found_names = [h['name'] for h in filtered]
+    missing = [name for name in expected if name not in found_names]
+    if missing:
+        print(f"WARNING: Missing {len(missing)} {role} heroes: {', '.join(missing)}")
+    
     return filtered
 
 def scrape_all_heroes(region='Europe'):
@@ -95,7 +147,7 @@ def scrape_all_heroes(region='Europe'):
     
     url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region={region}&role=All&rq=2&tier=All"
     
-    print(f"\nFetching from: {url}\n")
+    print(f"Fetching from: {url}")
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -109,11 +161,13 @@ def scrape_all_heroes(region='Europe'):
         if response.status_code == 200:
             return parse_hero_stats(response.content)
         else:
-            print(f"Failed: HTTP {response.status_code}")
+            print(f"ERROR: HTTP {response.status_code}")
             return []
             
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"ERROR fetching data: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def main():
@@ -121,39 +175,57 @@ def main():
     print("Overwatch Stats Scraper")
     print("=" * 70)
     
-    all_heroes = scrape_all_heroes()
-    
-    if not all_heroes:
-        print("\nFailed to scrape heroes")
-        exit(1)
-    
-    data = {
-        'lastUpdated': datetime.now().isoformat(),
-        'source': 'Blizzard Entertainment Official Stats',
-        'region': 'Europe',
-        'tier': 'All Tiers',
-        'gameMode': 'Competitive - Role Queue',
-        'platform': 'PC (Mouse & Keyboard)',
-        'disclaimer': 'Not affiliated with or endorsed by Blizzard Entertainment',
-        'roles': {
-            'Tank': filter_heroes_by_role(all_heroes, 'Tank'),
-            'Damage': filter_heroes_by_role(all_heroes, 'Damage'),
-            'Support': filter_heroes_by_role(all_heroes, 'Support'),
+    try:
+        all_heroes = scrape_all_heroes()
+        
+        if not all_heroes:
+            print("\nERROR: Failed to scrape heroes")
+            sys.exit(1)
+        
+        data = {
+            'lastUpdated': datetime.now().isoformat(),
+            'source': 'Blizzard Entertainment Official Stats',
+            'region': 'Europe',
+            'tier': 'All Tiers',
+            'gameMode': 'Competitive - Role Queue',
+            'platform': 'PC (Mouse & Keyboard)',
+            'disclaimer': 'Not affiliated with or endorsed by Blizzard Entertainment',
+            'roles': {
+                'Tank': filter_heroes_by_role(all_heroes, 'Tank'),
+                'Damage': filter_heroes_by_role(all_heroes, 'Damage'),
+                'Support': filter_heroes_by_role(all_heroes, 'Support'),
+            }
         }
-    }
-    
-    total = sum(len(heroes) for heroes in data['roles'].values())
-    
-    with open('ow_rates.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    
-    print("\n" + "=" * 70)
-    print(f"SUCCESS! Scraped {total} heroes")
-    print(f"   Tank: {len(data['roles']['Tank'])} heroes")
-    print(f"   Damage: {len(data['roles']['Damage'])} heroes")
-    print(f"   Support: {len(data['roles']['Support'])} heroes")
-    print("Saved to ow_rates.json")
-    print("=" * 70)
+        
+        total = sum(len(heroes) for heroes in data['roles'].values())
+        
+        if total == 0:
+            print("\nERROR: No heroes in final data")
+            sys.exit(1)
+        
+        # Verify expected hero counts
+        expected_counts = {'Tank': 14, 'Damage': 22, 'Support': 14}
+        for role, expected in expected_counts.items():
+            actual = len(data['roles'][role])
+            if actual != expected:
+                print(f"\nWARNING: {role} has {actual} heroes, expected {expected}")
+        
+        with open('ow_rates.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print("\n" + "=" * 70)
+        print(f"SUCCESS! Scraped {total} heroes")
+        print(f"   Tank: {len(data['roles']['Tank'])} heroes")
+        print(f"   Damage: {len(data['roles']['Damage'])} heroes")
+        print(f"   Support: {len(data['roles']['Support'])} heroes")
+        print("Saved to ow_rates.json")
+        print("=" * 70)
+        
+    except Exception as e:
+        print(f"\nFATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
