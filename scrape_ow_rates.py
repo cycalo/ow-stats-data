@@ -31,22 +31,33 @@ def parse_hero_stats(html_content):
     hero_data = hero_section_match.group(1)
     print(f"Found hero data section: {len(hero_data)} characters")
     
-    # UPDATED PATTERN: Much more permissive to catch all hero names
-    # Matches: Any characters (including special chars, numbers, colons, spaces)
-    # followed by two percentages
-    # Example matches:
-    # - "Ana46.9%22.6%"
-    # - "Soldier: 7648.9%18.4%"
-    # - "Torbjörn47.6%3%"
-    # - "Lúcio51%7.6%"
+    # SPECIAL CASE: Handle "Soldier: 76" first
+    # Pattern specifically for Soldier: 76
+    soldier_pattern = r'(Soldier: 76)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
+    soldier_match = re.search(soldier_pattern, hero_data)
+    
+    if soldier_match:
+        print("Found Soldier: 76!")
+        heroes.append({
+            'name': 'Soldier: 76',
+            'pickRate': soldier_match.group(3),  # SWAPPED (pick is second %)
+            'winRate': soldier_match.group(2)     # SWAPPED (win is first %)
+        })
+        # Remove Soldier: 76 from the data so it doesn't get matched again
+        hero_data = hero_data.replace(soldier_match.group(0), '', 1)
+    else:
+        print("WARNING: Soldier: 76 not found!")
+    
+    # GENERAL PATTERN: Match all other heroes
+    # Matches: Any characters (except digits) followed by two percentages
     pattern = r'([^0-9]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
     
     matches = re.findall(pattern, hero_data)
     
-    print(f"Found {len(matches)} potential hero entries")
+    print(f"Found {len(matches)} additional hero entries")
     
-    if len(matches) == 0:
-        print("ERROR: No matches found")
+    if len(matches) == 0 and len(heroes) == 0:
+        print("ERROR: No matches found at all")
         print("Hero data content:")
         print(hero_data[:500])
         return heroes
@@ -67,14 +78,14 @@ def parse_hero_stats(html_content):
             'Tier', 'Quick Play', 'Competitive', 'Bronze', 'Silver', 'Gold',
             'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Champion',
             'Mouse', 'Keyboard', 'Controller', 'Americas', 'Asia', 'Europe',
-            'Pick Rate', 'Win Rate', 'Hero'
+            'Pick Rate', 'Win Rate', 'Hero', 'Soldier'
         ]
         
         if any(term in name for term in skip_terms):
             continue
         
-        # Skip if name contains numbers (except for "Soldier: 76")
-        if any(char.isdigit() for char in name) and 'Soldier' not in name:
+        # Skip if name contains numbers (we already handled Soldier: 76)
+        if any(char.isdigit() for char in name):
             continue
         
         # Data order from Blizzard: Hero Name, Win Rate, Pick Rate
@@ -85,11 +96,11 @@ def parse_hero_stats(html_content):
             'winRate': first_percent     # SWAPPED
         })
     
-    print(f"Successfully parsed {len(heroes)} heroes")
+    print(f"Successfully parsed {len(heroes)} heroes total (including Soldier: 76)")
     
     # Debug: print all hero names found
     print("\nHeroes found:")
-    for hero in heroes:
+    for hero in sorted(heroes, key=lambda h: h['name']):
         print(f"  - {hero['name']}: pick={hero['pickRate']}, win={hero['winRate']}")
     
     return heroes
