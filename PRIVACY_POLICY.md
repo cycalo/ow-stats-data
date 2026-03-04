@@ -1,6 +1,6 @@
 # Privacy Policy for Overwatch Progress Tracker
 
-**Last updated: 20/02/2026**
+**Last updated: 04/03/2026**
 
 This privacy policy describes how **Overwatch Progress Tracker** (“the app”) handles information when you use it. The app is designed to respect your privacy: we do not collect, store, or transmit your personal data to our servers.
 
@@ -41,6 +41,8 @@ The app has an optional **Meta** feature that can load **public, anonymous commu
 - **Backup** creates a file (e.g. JSON) and saves it to a **location you choose** on your device (or to a folder you have configured, such as a cloud storage app’s folder).
 - **Restore** reads a file **you select** from your device.
 - The app **does not upload** your backup to the developer’s servers. Backup and restore stay between you and your chosen storage.
+
+**Android storage permission:** On Android, the app may ask for **“All files access”** (manage external storage) so it can save backups to the folder you choose. This is used only to write and read backup files (e.g. `ow.json`, `ow_auto.json`) in that folder—including for **automatic daily backup** if you enable it—and to let you pick a backup file when restoring. The app does not access, upload, or scan other files on your device.
 
 ---
 
