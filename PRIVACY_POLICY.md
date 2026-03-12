@@ -1,8 +1,8 @@
-# Privacy Policy for Overwatch Progress Tracker
+# Privacy Policy for Overwatch Personal Tracker
 
 **Last updated: 04/03/2026**
 
-This privacy policy describes how **Overwatch Progress Tracker** (“the app”) handles information when you use it. The app is designed to respect your privacy: we do not collect, store, or transmit your personal data to our servers.
+This privacy policy describes how **Overwatch Personal Tracker** (“the app”) handles information when you use it. The app is designed to respect your privacy: we do not collect, store, or transmit your personal data to our servers.
 
 ---
 
@@ -81,4 +81,4 @@ If you have questions about this privacy policy or the app’s handling of data,
 
 ---
 
-*This privacy policy applies to the app “Overwatch Progress Tracker” (Overwatch Daily Tracker) as distributed on Google Play and other stores.*
+*This privacy policy applies to the app “Overwatch Personal Tracker” (short name: OW Tracker) as distributed on Google Play and other stores.*
