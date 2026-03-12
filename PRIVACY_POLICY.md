@@ -52,26 +52,40 @@ The app **does not** connect to your Blizzard or Overwatch account. All match da
 
 ---
 
-## 6. Third-Party Services
+## 6. Optional Desktop Companion Connection
+
+The app can optionally connect to the separate **Overwatch Queue Tracker** desktop companion on your own PC over your local network so your phone can receive real-time queue notifications (for example, when a game is found).
+
+When you use this feature:
+
+- The mobile app opens a WebSocket connection from your device **directly to your PC** at the address you enter (e.g. `192.168.x.x:8080`). Communication stays on your local network; it is **not** sent to our servers.
+- Messages exchanged are limited to simple game-status information (such as queue state or “game found” events) and technical connection metadata (like timestamps or error codes). They do **not** include your name, email, Blizzard account data, or other personal profile information.
+- The app may remember the last desktop address you entered and basic connection state so you can reconnect more easily. This information is stored **only on your device**.
+
+We do **not** collect or receive any of this desktop-connection data on our own servers.
+
+---
+
+## 7. Third-Party Services
 
 - **Google Play (or other app stores):** If you install the app from an app store, that store may collect data according to its own policy (e.g. Google Play). This policy covers only the app itself, not the store.
 - **Meta tab:** If the Meta feature fetches data from an external URL, that service is responsible for its own data practices. We do not control third-party websites or APIs.
 
 ---
 
-## 7. Children’s Privacy
+## 8. Children’s Privacy
 
 The app is not directed at children under 13. We do not knowingly collect personal information from children. If you believe a child has provided data through the app, please contact us (see below); the data would be stored only on the device and can be removed by uninstalling the app or clearing app data.
 
 ---
 
-## 8. Changes to This Policy
+## 9. Changes to This Policy
 
 We may update this privacy policy from time to time. The “Last updated” date at the top will be revised when changes are made. Continued use of the app after changes constitutes acceptance of the updated policy. For significant changes, we may provide notice in the app or via the store listing.
 
 ---
 
-## 9. Contact
+## 10. Contact
 
 If you have questions about this privacy policy or the app’s handling of data, you can contact the developer at:
 
