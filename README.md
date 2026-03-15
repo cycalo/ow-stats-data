@@ -37,19 +37,3 @@ This data is sourced from Blizzard Entertainment's official statistics page.
 This project is not affiliated with or endorsed by Blizzard Entertainment.
 All trademarks are property of their respective owners.
 ```
-
----
-
-### **Step 3: Enable GitHub Pages**
-
-1. Go to your repo on GitHub
-2. Click **Settings** (top menu)
-3. Scroll down to **Pages** (left sidebar)
-4. Under "Source":
-   - Branch: `main`
-   - Folder: `/ (root)`
-5. Click **Save**
-6. Wait 2-3 minutes
-7. Your JSON will be available at:
-```
-   https://yourusername.github.io/ow-stats-data/ow_rates.json
