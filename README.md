@@ -15,7 +15,7 @@ Data is automatically updated every Sunday at 2 AM UTC via GitHub Actions.
 ## Usage
 Access the JSON file at:
 ```
-https://yourusername.github.io/ow-stats-data/ow_rates.json
+https://cycalo.github.io/ow-stats-data/ow_rates.json
 ```
 
 ## Data Format
