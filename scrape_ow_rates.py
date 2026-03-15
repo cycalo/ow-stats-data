@@ -156,7 +156,7 @@ def filter_heroes_by_role(heroes, role):
 def scrape_all_heroes(region='Europe'):
     """Scrape all hero statistics"""
     
-    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=1&tier=All"
+    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All"
     
     print(f"Fetching from: {url}")
     
