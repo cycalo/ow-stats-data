@@ -42,7 +42,7 @@ The app has an optional **Meta** feature that can load **public, anonymous commu
 - **Restore** reads a file **you select** from your device.
 - The app **does not upload** your backup to the developer’s servers. Backup and restore stay between you and your chosen storage.
 
-**Android storage permission:** On Android, the app may ask for **“All files access”** (manage external storage) so it can save backups to the folder you choose. This is used only to write and read backup files (e.g. `ow.json`, `ow_auto.json`) in that folder—including for **automatic daily backup** if you enable it—and to let you pick a backup file when restoring. The app does not access, upload, or scan other files on your device.
+**Android storage:** The app does **not** request broad “All files access.” Backups use the **system file and folder picker** where the OS allows. For **automatic daily backup**, if the folder you chose cannot be written under Android storage rules, the app saves the backup file **inside the app’s own storage** instead. The app does not scan or upload other files on your device.
 
 ---
 
