@@ -116,7 +116,7 @@ def filter_heroes_by_role(heroes, role):
     
     DAMAGE_HEROES = [
         'Anran', 'Ashe', 'Bastion', 'Cassidy', 'Echo', 'Emre', 'Freja', 'Genji', 
-        'Hanzo', 'Junkrat', 'Mei', 'Pharah', 'Reaper', 'Sojourn', 
+        'Hanzo', 'Junkrat', 'Mei', 'Pharah', 'Reaper', 'Sierra', 'Sojourn', 
         'Soldier: 76', 'Sombra', 'Symmetra', 'Torbjörn', 'Tracer', 
         'Vendetta', 'Venture', 'Widowmaker'
     ]
@@ -215,7 +215,7 @@ def main():
             sys.exit(1)
         
         # Verify expected hero counts
-        expected_counts = {'Tank': 14, 'Damage': 22, 'Support': 14}
+        expected_counts = {'Tank': 14, 'Damage': 23, 'Support': 14}
         for role, expected in expected_counts.items():
             actual = len(data['roles'][role])
             if actual != expected:
