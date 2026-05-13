@@ -2,184 +2,249 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 import re
 import sys
 
+# Blizzard "rq" query param: 0 = Quick Play (wrong for this dataset), 2 = Competitive Role Queue.
+RATES_PAGE = "https://overwatch.blizzard.com/en-us/rates/"
+COMPETITIVE_RQ = "2"
+
+
+def competitive_rates_params(region: str = "Europe") -> dict[str, str]:
+    """Query string for official PC competitive (role queue) stats."""
+    return {
+        "input": "PC",
+        "map": "all-maps",
+        "region": region,
+        "role": "All",
+        "rq": COMPETITIVE_RQ,
+        "tier": "All",
+    }
+
+
+def assert_final_url_is_competitive(final_url: str) -> None:
+    """Abort if redirects or server rewrote the queue mode away from competitive."""
+    parsed = urlparse(final_url)
+    rq_values = parse_qs(parsed.query).get("rq", [])
+    if len(rq_values) != 1 or rq_values[0] != COMPETITIVE_RQ:
+        raise RuntimeError(
+            "Expected competitive role-queue data (rq=2 only). "
+            f"Final URL after redirects: {final_url!r} "
+            f"(parsed rq={rq_values!r}). Refusing to scrape Quick Play or unknown modes."
+        )
+
+
+TANK_HEROES = [
+    "D.Va",
+    "Doomfist",
+    "Domina",
+    "Hazard",
+    "Junker Queen",
+    "Mauga",
+    "Orisa",
+    "Ramattra",
+    "Reinhardt",
+    "Roadhog",
+    "Sigma",
+    "Winston",
+    "Wrecking Ball",
+    "Zarya",
+]
+
+DAMAGE_HEROES = [
+    "Anran",
+    "Ashe",
+    "Bastion",
+    "Cassidy",
+    "Echo",
+    "Emre",
+    "Freja",
+    "Genji",
+    "Hanzo",
+    "Junkrat",
+    "Mei",
+    "Pharah",
+    "Reaper",
+    "Sierra",
+    "Sojourn",
+    "Soldier: 76",
+    "Sombra",
+    "Symmetra",
+    "Torbjörn",
+    "Tracer",
+    "Vendetta",
+    "Venture",
+    "Widowmaker",
+]
+
+SUPPORT_HEROES = [
+    "Ana",
+    "Baptiste",
+    "Brigitte",
+    "Illari",
+    "Jetpack Cat",
+    "Juno",
+    "Kiriko",
+    "Lifeweaver",
+    "Lúcio",
+    "Mercy",
+    "Mizuki",
+    "Moira",
+    "Wuyang",
+    "Zenyatta",
+]
+
+# Blizzard concatenates hero rows with no delimiter; match longest names first.
+HERO_NAMES_LONGEST_FIRST = sorted(
+    set(TANK_HEROES) | set(DAMAGE_HEROES) | set(SUPPORT_HEROES),
+    key=len,
+    reverse=True,
+)
+
+_TRIPLE_PCT = re.compile(r"^(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)")
+
+
 def parse_hero_stats(html_content):
-    """Parse hero statistics using regex from the concatenated text"""
-    soup = BeautifulSoup(html_content, 'html.parser')
+    """
+    Parse hero stats from page text.
+
+    The official table order in the scraped blob is: Win %, Pick %, Ban % (after each
+    hero name). A leading ``Ban Rate`` label is stripped when present.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
     heroes = []
-    
-    # Get all text content
+
     text = soup.get_text()
-    
     print(f"Content length: {len(text)} characters")
-    
-    # Find the section between "HeroPick RateWin Rate" and "Frequently Asked Questions"
+
     hero_section_match = re.search(
-        r'HeroPick RateWin Rate(.+?)Frequently Asked Questions',
+        r"HeroPick RateWin Rate(.+?)Frequently Asked Questions",
         text,
-        re.DOTALL
+        re.DOTALL,
     )
-    
+
     if not hero_section_match:
         print("ERROR: Could not find hero data section")
         print("Dumping first 1000 chars of text:")
         print(text[:1000])
         return heroes
-    
+
     hero_data = hero_section_match.group(1)
     print(f"Found hero data section: {len(hero_data)} characters")
-    
-    # SPECIAL CASE: Handle "Soldier: 76" first
-    # Pattern specifically for Soldier: 76
-    soldier_pattern = r'(Soldier: 76)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
-    soldier_match = re.search(soldier_pattern, hero_data)
-    
-    if soldier_match:
-        print("Found Soldier: 76!")
-        heroes.append({
-            'name': 'Soldier: 76',
-            'pickRate': soldier_match.group(3),  # SWAPPED (pick is second %)
-            'winRate': soldier_match.group(2)     # SWAPPED (win is first %)
-        })
-        # Remove Soldier: 76 from the data so it doesn't get matched again
-        hero_data = hero_data.replace(soldier_match.group(0), '', 1)
-    else:
-        print("WARNING: Soldier: 76 not found!")
-    
-    # GENERAL PATTERN: Match all other heroes
-    # Matches: Any characters (except digits) followed by two percentages
-    pattern = r'([^0-9]+?)(\d+(?:\.\d+)?%)(\d+(?:\.\d+)?%)'
-    
-    matches = re.findall(pattern, hero_data)
-    
-    print(f"Found {len(matches)} additional hero entries")
-    
-    if len(matches) == 0 and len(heroes) == 0:
-        print("ERROR: No matches found at all")
-        print("Hero data content:")
-        print(hero_data[:500])
-        return heroes
-    
-    # Filter out junk matches
-    for match in matches:
-        name = match[0].strip()
-        first_percent = match[1]   # This is WIN RATE
-        second_percent = match[2]  # This is PICK RATE
-        
-        # Skip if name is too short
-        if len(name) < 2:
+
+    if hero_data.startswith("Ban Rate"):
+        hero_data = hero_data[len("Ban Rate") :]
+
+    i = 0
+    while i < len(hero_data):
+        if hero_data[i].isspace():
+            i += 1
             continue
-            
-        # Skip common false positives
-        skip_terms = [
-            'All', 'PC', 'Role', 'Map', 'Region', 'Input', 'Game Mode',
-            'Tier', 'Quick Play', 'Competitive', 'Bronze', 'Silver', 'Gold',
-            'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Champion',
-            'Mouse', 'Keyboard', 'Controller', 'Americas', 'Asia', 'Europe',
-            'Pick Rate', 'Win Rate', 'Hero', 'Soldier'
-        ]
-        
-        if any(term in name for term in skip_terms):
-            continue
-        
-        # Skip if name contains numbers (we already handled Soldier: 76)
-        if any(char.isdigit() for char in name):
-            continue
-        
-        # Data order from Blizzard: Hero Name, Win Rate, Pick Rate
-        # But we want: Hero Name, Pick Rate, Win Rate
-        heroes.append({
-            'name': name,
-            'pickRate': second_percent,  # SWAPPED
-            'winRate': first_percent     # SWAPPED
-        })
-    
-    print(f"Successfully parsed {len(heroes)} heroes total (including Soldier: 76)")
-    
-    # Debug: print all hero names found
+
+        matched_name = None
+        for name in HERO_NAMES_LONGEST_FIRST:
+            if hero_data.startswith(name, i):
+                matched_name = name
+                break
+
+        if matched_name is None:
+            tail = hero_data[i : i + 80].replace("\n", " ")
+            print(f"ERROR: Could not match a known hero name at offset {i}: {tail!r}")
+            return []
+
+        i += len(matched_name)
+        m = _TRIPLE_PCT.match(hero_data[i:])
+        if not m:
+            tail = hero_data[i : i + 40].replace("\n", " ")
+            print(
+                f"ERROR: Expected three percentages after {matched_name!r}, "
+                f"got: {tail!r}"
+            )
+            return []
+
+        win_rate, pick_rate, ban_rate = m.groups()
+        i += m.end()
+
+        heroes.append(
+            {
+                "name": matched_name,
+                "winRate": win_rate,
+                "pickRate": pick_rate,
+                "banRate": ban_rate,
+            }
+        )
+
+    print(f"Successfully parsed {len(heroes)} heroes")
+
     print("\nHeroes found:")
-    for hero in sorted(heroes, key=lambda h: h['name']):
-        print(f"  - {hero['name']}: pick={hero['pickRate']}, win={hero['winRate']}")
-    
+    for hero in sorted(heroes, key=lambda h: h["name"]):
+        print(
+            f"  - {hero['name']}: pick={hero['pickRate']}, "
+            f"win={hero['winRate']}, ban={hero['banRate']}"
+        )
+
     return heroes
 
 def filter_heroes_by_role(heroes, role):
     """Filter heroes by their actual role"""
-    
-    TANK_HEROES = [
-        'D.Va', 'Doomfist', 'Domina', 'Hazard', 'Junker Queen', 'Mauga', 
-        'Orisa', 'Ramattra', 'Reinhardt', 'Roadhog', 'Sigma', 
-        'Winston', 'Wrecking Ball', 'Zarya'
-    ]
-    
-    DAMAGE_HEROES = [
-        'Anran', 'Ashe', 'Bastion', 'Cassidy', 'Echo', 'Emre', 'Freja', 'Genji', 
-        'Hanzo', 'Junkrat', 'Mei', 'Pharah', 'Reaper', 'Sierra', 'Sojourn', 
-        'Soldier: 76', 'Sombra', 'Symmetra', 'Torbjörn', 'Tracer', 
-        'Vendetta', 'Venture', 'Widowmaker'
-    ]
-    
-    SUPPORT_HEROES = [
-        'Ana', 'Baptiste', 'Brigitte', 'Illari', 'Jetpack Cat', 
-        'Juno', 'Kiriko', 'Lifeweaver', 'Lúcio', 'Mercy', 'Mizuki', 
-        'Moira', 'Wuyang', 'Zenyatta'
-    ]
-    
-    if role == 'Tank':
-        filtered = [h for h in heroes if h['name'] in TANK_HEROES]
-    elif role == 'Damage':
-        filtered = [h for h in heroes if h['name'] in DAMAGE_HEROES]
-    elif role == 'Support':
-        filtered = [h for h in heroes if h['name'] in SUPPORT_HEROES]
+
+    if role == "Tank":
+        filtered = [h for h in heroes if h["name"] in TANK_HEROES]
+    elif role == "Damage":
+        filtered = [h for h in heroes if h["name"] in DAMAGE_HEROES]
+    elif role == "Support":
+        filtered = [h for h in heroes if h["name"] in SUPPORT_HEROES]
     else:
         return heroes
-    
+
     print(f"Filtered to {len(filtered)} {role} heroes")
-    
-    # Check for missing heroes
-    if role == 'Tank':
+
+    if role == "Tank":
         expected = TANK_HEROES
-    elif role == 'Damage':
+    elif role == "Damage":
         expected = DAMAGE_HEROES
     else:
         expected = SUPPORT_HEROES
-    
-    found_names = [h['name'] for h in filtered]
+
+    found_names = [h["name"] for h in filtered]
     missing = [name for name in expected if name not in found_names]
     if missing:
         print(f"WARNING: Missing {len(missing)} {role} heroes: {', '.join(missing)}")
-    
+
     return filtered
 
-def scrape_all_heroes(region='Europe'):
-    """Scrape all hero statistics"""
-    
-    url = f"https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All"
-    
-    print(f"Fetching from: {url}")
-    
+def scrape_all_heroes(region: str = "Europe"):
+    """Scrape all hero statistics from Competitive Role Queue (rq=2), not Quick Play (rq=0)."""
+    params = competitive_rates_params(region=region)
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-    
+
+    print(f"Fetching from: {RATES_PAGE} with params {params}")
+
     try:
-        response = requests.get(url, headers=headers, timeout=30)
-        
+        response = requests.get(
+            RATES_PAGE, params=params, headers=headers, timeout=30
+        )
+
         print(f"HTTP Status: {response.status_code}")
-        
-        if response.status_code == 200:
-            return parse_hero_stats(response.content)
-        else:
+        print(f"Final URL: {response.url}")
+
+        if response.status_code != 200:
             print(f"ERROR: HTTP {response.status_code}")
-            return []
-            
+            return [], ""
+
+        assert_final_url_is_competitive(response.url)
+
+        return parse_hero_stats(response.content), response.url
+
     except Exception as e:
         print(f"ERROR fetching data: {e}")
         import traceback
+
         traceback.print_exc()
-        return []
+        return [], ""
 
 def main():
     print("=" * 70)
@@ -187,15 +252,16 @@ def main():
     print("=" * 70)
     
     try:
-        all_heroes = scrape_all_heroes()
-        
+        all_heroes, source_url = scrape_all_heroes()
+
         if not all_heroes:
             print("\nERROR: Failed to scrape heroes")
             sys.exit(1)
-        
+
         data = {
             'lastUpdated': datetime.now().isoformat(),
             'source': 'Blizzard Entertainment Official Stats',
+            'sourceUrl': source_url,
             'region': 'Europe',
             'tier': 'All Tiers',
             'gameMode': 'Competitive - Role Queue',

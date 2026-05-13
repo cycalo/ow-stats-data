@@ -19,12 +19,15 @@ https://cycalo.github.io/ow-stats-data/ow_rates.json
 ```
 
 ## Data Format
+Each hero entry includes **pick**, **win**, and **ban** rates (strings with a `%` suffix), scraped from the competitive role-queue page (`rq=2`).
+
 ```json
 {
   "lastUpdated": "2026-02-17T02:00:00",
+  "sourceUrl": "https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All",
   "roles": {
     "Tank": [
-      {"name": "Reinhardt", "pickRate": "52.3%", "winRate": "12.3%"}
+      {"name": "Reinhardt", "pickRate": "11.3%", "winRate": "52.1%", "banRate": "2%"}
     ],
     "Damage": [...],
     "Support": [...]
@@ -36,4 +39,3 @@ https://cycalo.github.io/ow-stats-data/ow_rates.json
 This data is sourced from Blizzard Entertainment's official statistics page. 
 This project is not affiliated with or endorsed by Blizzard Entertainment.
 All trademarks are property of their respective owners.
-```
