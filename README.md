@@ -3,7 +3,7 @@
 Automatically scraped Overwatch hero statistics from Blizzard's official stats page.
 
 ## Data Source
-- **Source:** https://overwatch.blizzard.com/en-us/rates/
+- **Source:** https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All
 - **Region:** Europe
 - **Tier:** All Ranks
 - **Game Mode:** Competitive - Role Queue
