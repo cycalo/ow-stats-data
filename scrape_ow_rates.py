@@ -6,13 +6,13 @@ from urllib.parse import parse_qs, urlparse
 import re
 import sys
 
-# Blizzard "rq" query param: 0 = Quick Play (wrong for this dataset), 2 = Competitive Role Queue.
+# Blizzard "rq" query param: 0 = Quick Play, 1 = Competitive, 2 = Quick Play (legacy alias).
 RATES_PAGE = "https://overwatch.blizzard.com/en-us/rates/"
-COMPETITIVE_RQ = "2"
+COMPETITIVE_RQ = "1"
 
 
 def competitive_rates_params(region: str = "Europe") -> dict[str, str]:
-    """Query string for official PC competitive (role queue) stats."""
+    """Query string for official PC competitive stats (rq=1)."""
     return {
         "input": "PC",
         "map": "all-maps",
@@ -29,7 +29,7 @@ def assert_final_url_is_competitive(final_url: str) -> None:
     rq_values = parse_qs(parsed.query).get("rq", [])
     if len(rq_values) != 1 or rq_values[0] != COMPETITIVE_RQ:
         raise RuntimeError(
-            "Expected competitive role-queue data (rq=2 only). "
+            "Expected competitive data (rq=1 only). "
             f"Final URL after redirects: {final_url!r} "
             f"(parsed rq={rq_values!r}). Refusing to scrape Quick Play or unknown modes."
         )
@@ -215,7 +215,7 @@ def filter_heroes_by_role(heroes, role):
     return filtered
 
 def scrape_all_heroes(region: str = "Europe"):
-    """Scrape all hero statistics from Competitive Role Queue (rq=2), not Quick Play (rq=0)."""
+    """Scrape all hero statistics from Competitive (rq=1), not Quick Play (rq=0)."""
     params = competitive_rates_params(region=region)
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
