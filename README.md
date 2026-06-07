@@ -3,7 +3,7 @@
 Automatically scraped Overwatch hero statistics from Blizzard's official stats page.
 
 ## Data Source
-- **Source:** https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All
+- **Source:** https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=1&tier=All
 - **Region:** Europe
 - **Tier:** All Ranks
 - **Game Mode:** Competitive - Role Queue
@@ -19,12 +19,12 @@ https://cycalo.github.io/ow-stats-data/ow_rates.json
 ```
 
 ## Data Format
-Each hero entry includes **pick**, **win**, and **ban** rates (strings with a `%` suffix), scraped from the competitive role-queue page (`rq=2`).
+Each hero entry includes **pick**, **win**, and **ban** rates (strings with a `%` suffix), scraped from the competitive page (`rq=1`).
 
 ```json
 {
   "lastUpdated": "2026-02-17T02:00:00",
-  "sourceUrl": "https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=2&tier=All",
+  "sourceUrl": "https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=1&tier=All",
   "roles": {
     "Tank": [
       {"name": "Reinhardt", "pickRate": "11.3%", "winRate": "52.1%", "banRate": "2%"}
