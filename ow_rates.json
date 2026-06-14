@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-07T08:07:11.941601",
+  "lastUpdated": "2026-06-14T06:24:13.884227",
   "source": "Blizzard Entertainment Official Stats",
   "sourceUrl": "https://overwatch.blizzard.com/en-us/rates/?input=PC&map=all-maps&region=Europe&role=All&rq=1&tier=All",
   "region": "Europe",
@@ -11,21 +11,21 @@
     "Tank": [
       {
         "name": "D.Va",
-        "winRate": "46.7%",
+        "winRate": "46.6%",
         "pickRate": "6.6%",
-        "banRate": "19.3%"
+        "banRate": "18.7%"
       },
       {
         "name": "Domina",
-        "winRate": "51.2%",
-        "pickRate": "5.5%",
-        "banRate": "14.8%"
+        "winRate": "51.1%",
+        "pickRate": "5.4%",
+        "banRate": "14.2%"
       },
       {
         "name": "Doomfist",
         "winRate": "51.9%",
         "pickRate": "6.9%",
-        "banRate": "18.8%"
+        "banRate": "19.5%"
       },
       {
         "name": "Hazard",
@@ -41,57 +41,57 @@
       },
       {
         "name": "Mauga",
-        "winRate": "50.6%",
+        "winRate": "50.7%",
         "pickRate": "7.3%",
-        "banRate": "14.8%"
+        "banRate": "15.5%"
       },
       {
         "name": "Orisa",
         "winRate": "45.2%",
-        "pickRate": "11.4%",
-        "banRate": "9.9%"
+        "pickRate": "11.5%",
+        "banRate": "10%"
       },
       {
         "name": "Ramattra",
-        "winRate": "48.1%",
+        "winRate": "48%",
         "pickRate": "7.8%",
-        "banRate": "6.1%"
+        "banRate": "6%"
       },
       {
         "name": "Reinhardt",
         "winRate": "52%",
-        "pickRate": "11.3%",
+        "pickRate": "11.4%",
         "banRate": "2.1%"
       },
       {
         "name": "Roadhog",
         "winRate": "47.5%",
         "pickRate": "8.6%",
-        "banRate": "11.4%"
+        "banRate": "11.5%"
       },
       {
         "name": "Sigma",
         "winRate": "51%",
-        "pickRate": "11.3%",
-        "banRate": "5.3%"
+        "pickRate": "11.4%",
+        "banRate": "5.2%"
       },
       {
         "name": "Winston",
         "winRate": "50.1%",
-        "pickRate": "5.9%",
-        "banRate": "5.7%"
+        "pickRate": "5.7%",
+        "banRate": "5.5%"
       },
       {
         "name": "Wrecking Ball",
         "winRate": "51.2%",
         "pickRate": "3.7%",
-        "banRate": "10.2%"
+        "banRate": "10.3%"
       },
       {
         "name": "Zarya",
         "winRate": "47%",
         "pickRate": "5.3%",
-        "banRate": "41.3%"
+        "banRate": "41.4%"
       }
     ],
     "Damage": [
@@ -109,81 +109,81 @@
       },
       {
         "name": "Bastion",
-        "winRate": "47.2%",
+        "winRate": "47.1%",
         "pickRate": "13.6%",
         "banRate": "6.3%"
       },
       {
         "name": "Cassidy",
-        "winRate": "47.7%",
-        "pickRate": "18.6%",
+        "winRate": "47.8%",
+        "pickRate": "18.7%",
         "banRate": "5.9%"
       },
       {
         "name": "Echo",
-        "winRate": "49.9%",
-        "pickRate": "5%",
+        "winRate": "49.8%",
+        "pickRate": "5.1%",
         "banRate": "0.8%"
       },
       {
         "name": "Emre",
         "winRate": "48.1%",
-        "pickRate": "11.1%",
-        "banRate": "1.9%"
+        "pickRate": "11%",
+        "banRate": "1.8%"
       },
       {
         "name": "Freja",
-        "winRate": "47%",
+        "winRate": "46.9%",
         "pickRate": "3.7%",
         "banRate": "1%"
       },
       {
         "name": "Genji",
-        "winRate": "52.3%",
-        "pickRate": "12.3%",
+        "winRate": "52.4%",
+        "pickRate": "12.1%",
         "banRate": "6.9%"
       },
       {
         "name": "Hanzo",
-        "winRate": "49.8%",
+        "winRate": "49.9%",
         "pickRate": "9%",
         "banRate": "2%"
       },
       {
         "name": "Junkrat",
-        "winRate": "49.6%",
-        "pickRate": "9.8%",
-        "banRate": "2.6%"
+        "winRate": "49.7%",
+        "pickRate": "9.9%",
+        "banRate": "2.7%"
       },
       {
         "name": "Mei",
-        "winRate": "49.3%",
-        "pickRate": "6.7%",
+        "winRate": "49.4%",
+        "pickRate": "6.8%",
         "banRate": "2%"
       },
       {
         "name": "Pharah",
-        "winRate": "52.8%",
+        "winRate": "52.7%",
         "pickRate": "5.3%",
         "banRate": "13.6%"
       },
       {
         "name": "Reaper",
-        "winRate": "52%",
+        "winRate": "52.1%",
         "pickRate": "11.8%",
-        "banRate": "3.7%"
+        "banRate": "3.8%"
       },
       {
         "name": "Sierra",
-        "winRate": "51.3%",
-        "pickRate": "15.8%",
-        "banRate": "38.6%"
+        "winRate": "51.2%",
+        "pickRate": "15.6%",
+        "banRate": "38.7%"
       },
       {
         "name": "Sojourn",
         "winRate": "45.2%",
-        "pickRate": "11.1%",
-        "banRate": "1.3%"
+        "pickRate": "11.3%",
+        "banRate": "1.2%"
       },
       {
         "name": "Soldier: 76",
@@ -195,13 +195,13 @@
         "name": "Sombra",
         "winRate": "46.7%",
         "pickRate": "3.6%",
-        "banRate": "26.5%"
+        "banRate": "26.8%"
       },
       {
         "name": "Symmetra",
         "winRate": "50.7%",
         "pickRate": "2.8%",
-        "banRate": "1.8%"
+        "banRate": "1.9%"
       },
       {
         "name": "Torbjörn",
@@ -211,19 +211,19 @@
       },
       {
         "name": "Tracer",
-        "winRate": "50.7%",
+        "winRate": "50.8%",
         "pickRate": "7.3%",
-        "banRate": "6.9%"
+        "banRate": "7%"
       },
       {
         "name": "Vendetta",
-        "winRate": "48.9%",
+        "winRate": "49%",
         "pickRate": "2.3%",
-        "banRate": "8.9%"
+        "banRate": "8.1%"
       },
       {
         "name": "Venture",
-        "winRate": "51.7%",
+        "winRate": "51.6%",
         "pickRate": "2.3%",
         "banRate": "0.6%"
       },
@@ -231,61 +231,61 @@
         "name": "Widowmaker",
         "winRate": "50.3%",
         "pickRate": "5.2%",
-        "banRate": "8.5%"
+        "banRate": "8.6%"
       }
     ],
     "Support": [
       {
         "name": "Ana",
         "winRate": "47.9%",
-        "pickRate": "28.5%",
-        "banRate": "10.5%"
+        "pickRate": "28.1%",
+        "banRate": "10.6%"
       },
       {
         "name": "Baptiste",
-        "winRate": "47.5%",
-        "pickRate": "7.6%",
+        "winRate": "47.6%",
+        "pickRate": "7.7%",
         "banRate": "0.2%"
       },
       {
         "name": "Brigitte",
         "winRate": "52.1%",
-        "pickRate": "4.9%",
+        "pickRate": "4.8%",
         "banRate": "0.3%"
       },
       {
         "name": "Illari",
-        "winRate": "50.4%",
-        "pickRate": "7.8%",
-        "banRate": "0.6%"
+        "winRate": "50.3%",
+        "pickRate": "7.5%",
+        "banRate": "0.5%"
       },
       {
         "name": "Jetpack Cat",
-        "winRate": "49.8%",
+        "winRate": "49.7%",
         "pickRate": "4.3%",
-        "banRate": "25.4%"
+        "banRate": "25%"
       },
       {
         "name": "Juno",
-        "winRate": "50.5%",
-        "pickRate": "14.9%",
+        "winRate": "50.6%",
+        "pickRate": "15%",
         "banRate": "0.3%"
       },
       {
         "name": "Kiriko",
         "winRate": "47.9%",
-        "pickRate": "35.4%",
+        "pickRate": "35.6%",
         "banRate": "4.4%"
       },
       {
         "name": "Lifeweaver",
         "winRate": "49.9%",
-        "pickRate": "15%",
+        "pickRate": "15.2%",
         "banRate": "0.8%"
       },
       {
         "name": "Lúcio",
-        "winRate": "50.2%",
+        "winRate": "50.1%",
         "pickRate": "6.2%",
         "banRate": "0.9%"
       },
@@ -298,19 +298,19 @@
       {
         "name": "Mizuki",
         "winRate": "50.7%",
-        "pickRate": "11.5%",
-        "banRate": "1.6%"
+        "pickRate": "11.8%",
+        "banRate": "1.7%"
       },
       {
         "name": "Moira",
-        "winRate": "47.6%",
-        "pickRate": "24.2%",
-        "banRate": "4.4%"
+        "winRate": "47.5%",
+        "pickRate": "24.1%",
+        "banRate": "4.5%"
       },
       {
         "name": "Wuyang",
         "winRate": "51.2%",
-        "pickRate": "6.2%",
+        "pickRate": "6.1%",
         "banRate": "0.2%"
       },
       {
