@@ -66,6 +66,7 @@ DAMAGE_HEROES = [
     "Mei",
     "Pharah",
     "Reaper",
+    "Shion",
     "Sierra",
     "Sojourn",
     "Soldier: 76",
@@ -281,7 +282,7 @@ def main():
             sys.exit(1)
         
         # Verify expected hero counts
-        expected_counts = {'Tank': 14, 'Damage': 23, 'Support': 14}
+        expected_counts = {'Tank': 14, 'Damage': 24, 'Support': 14}
         for role, expected in expected_counts.items():
             actual = len(data['roles'][role])
             if actual != expected:
