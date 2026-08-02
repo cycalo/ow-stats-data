@@ -3,7 +3,7 @@
 Automatically scraped Overwatch hero statistics from Blizzard's official stats page.
 
 ## Data Source
-- **Source:** https://overwatch.blizzard.com/en-us/rates/ (competitive `rq` value is auto-detected at scrape time)
+- **Source:** https://overwatch.blizzard.com/en-us/rates/
 - **Region:** Europe
 - **Tier:** All Ranks
 - **Game Mode:** Competitive - Role Queue
