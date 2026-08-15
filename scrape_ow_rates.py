@@ -105,6 +105,7 @@ def discover_competitive_rq(region: str = "Europe") -> tuple[str, list[dict], st
 
 
 TANK_HEROES = [
+    "D.Mon",
     "D.Va",
     "Doomfist",
     "Domina",
@@ -348,7 +349,7 @@ def main():
             sys.exit(1)
         
         # Verify expected hero counts
-        expected_counts = {'Tank': 14, 'Damage': 24, 'Support': 14}
+        expected_counts = {'Tank': 15, 'Damage': 24, 'Support': 14}
         for role, expected in expected_counts.items():
             actual = len(data['roles'][role])
             if actual != expected:
