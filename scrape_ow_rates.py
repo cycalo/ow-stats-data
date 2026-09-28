@@ -9,6 +9,8 @@ import sys
 # Blizzard rotates which rq value (0/1/2) maps to Competitive; we detect it at runtime.
 RATES_PAGE = "https://overwatch.blizzard.com/en-us/rates/"
 RQ_CANDIDATES = ("0", "1", "2")
+# Top-level ow_rates.json fields stay Europe for existing consumers.
+REGIONS = ("Europe", "Americas", "Asia")
 MIN_NONZERO_BANS = 10
 REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -102,6 +104,42 @@ def discover_competitive_rq(region: str = "Europe") -> tuple[str, list[dict], st
 
     print(f"Using competitive rq={best_rq} ({best_bans} heroes with ban data)")
     return best_rq, best_heroes, best_url
+
+
+def assert_rates_url(final_url: str, region: str, rq: str) -> None:
+    """Abort if the response URL is not the competitive page for this region."""
+    query = parse_qs(urlparse(final_url).query)
+    rq_values = query.get("rq", [])
+    region_values = query.get("region", [])
+    if rq_values != [rq] or region_values != [region]:
+        raise RuntimeError(
+            f"Expected competitive {region} data (rq={rq}). "
+            f"Final URL after redirects: {final_url!r} "
+            f"(parsed rq={rq_values!r}, region={region_values!r})."
+        )
+
+
+def fetch_region(region: str, rq: str) -> tuple[list[dict], str]:
+    """Fetch competitive hero stats for one region using an already chosen rq."""
+    params = rates_params(region=region, rq=rq)
+    print(f"Fetching {region} with rq={rq}")
+    response = requests.get(
+        RATES_PAGE, params=params, headers=REQUEST_HEADERS, timeout=30
+    )
+    print(f"  HTTP {response.status_code}: {response.url}")
+    if response.status_code != 200:
+        raise RuntimeError(f"{region}: HTTP {response.status_code}")
+
+    assert_rates_url(response.url, region, rq)
+    heroes = parse_hero_stats(response.content, verbose=False)
+    nonzero_bans = count_nonzero_bans(heroes)
+    if len(heroes) == 0 or nonzero_bans < MIN_NONZERO_BANS:
+        raise RuntimeError(
+            f"{region} did not look like competitive data "
+            f"({len(heroes)} heroes, {nonzero_bans} with non-zero bans)."
+        )
+    print(f"  {region}: {len(heroes)} heroes, {nonzero_bans} with non-zero ban rates")
+    return heroes, response.url
 
 
 TANK_HEROES = [
@@ -291,81 +329,100 @@ def filter_heroes_by_role(heroes, role):
 
     return filtered
 
-def scrape_all_heroes(region: str = "Europe"):
-    """Scrape competitive role-queue stats, auto-detecting the active rq value."""
-    try:
-        _, all_heroes, source_url = discover_competitive_rq(region=region)
-        print(f"Final URL: {source_url}")
-        print(f"Successfully parsed {len(all_heroes)} heroes")
+def roles_for(heroes: list[dict], region: str) -> dict[str, list[dict]]:
+    """Split a region's hero list into Tank, Damage, and Support."""
+    print(f"\n{region}")
+    return {
+        "Tank": filter_heroes_by_role(heroes, "Tank"),
+        "Damage": filter_heroes_by_role(heroes, "Damage"),
+        "Support": filter_heroes_by_role(heroes, "Support"),
+    }
 
-        print("\nHeroes found:")
-        for hero in sorted(all_heroes, key=lambda h: h["name"]):
-            print(
-                f"  - {hero['name']}: pick={hero['pickRate']}, "
-                f"win={hero['winRate']}, ban={hero['banRate']}"
-            )
 
-        return all_heroes, source_url
+def check_role_counts(roles: dict[str, list[dict]], region: str) -> None:
+    expected_counts = {"Tank": 15, "Damage": 24, "Support": 14}
+    for role, expected in expected_counts.items():
+        actual = len(roles[role])
+        if actual != expected:
+            print(f"WARNING: {region} {role} has {actual} heroes, expected {expected}")
 
-    except Exception as e:
-        print(f"ERROR fetching data: {e}")
-        import traceback
 
-        traceback.print_exc()
-        return [], ""
+def scrape_all_regions() -> dict[str, tuple[list[dict], str]]:
+    """
+    Scrape competitive stats for Europe, Americas, and Asia.
+
+    Competitive rq is detected once (using Europe). The same rq is a game-mode
+    flag, so the other regions are fetched with that value.
+    """
+    rq, europe_heroes, europe_url = discover_competitive_rq(region="Europe")
+    scraped = {"Europe": (europe_heroes, europe_url)}
+
+    for region in REGIONS:
+        if region == "Europe":
+            continue
+        scraped[region] = fetch_region(region, rq)
+
+    return scraped
+
 
 def main():
     print("=" * 70)
     print("Overwatch Stats Scraper")
     print("=" * 70)
-    
+
     try:
-        all_heroes, source_url = scrape_all_heroes()
+        scraped = scrape_all_regions()
 
-        if not all_heroes:
-            print("\nERROR: Failed to scrape heroes")
-            sys.exit(1)
-
-        data = {
-            'lastUpdated': datetime.now().isoformat(),
-            'source': 'Blizzard Entertainment Official Stats',
-            'sourceUrl': source_url,
-            'region': 'Europe',
-            'tier': 'All Tiers',
-            'gameMode': 'Competitive - Role Queue',
-            'platform': 'PC (Mouse & Keyboard)',
-            'disclaimer': 'Not affiliated with or endorsed by Blizzard Entertainment',
-            'roles': {
-                'Tank': filter_heroes_by_role(all_heroes, 'Tank'),
-                'Damage': filter_heroes_by_role(all_heroes, 'Damage'),
-                'Support': filter_heroes_by_role(all_heroes, 'Support'),
+        regions_payload = {}
+        for region in REGIONS:
+            heroes, source_url = scraped[region]
+            if not heroes:
+                print(f"\nERROR: Failed to scrape {region}")
+                sys.exit(1)
+            roles = roles_for(heroes, region)
+            check_role_counts(roles, region)
+            regions_payload[region] = {
+                "sourceUrl": source_url,
+                "roles": roles,
             }
+
+        europe = regions_payload["Europe"]
+        data = {
+            "lastUpdated": datetime.now().isoformat(),
+            "source": "Blizzard Entertainment Official Stats",
+            # Top-level sourceUrl, region, and roles stay Europe so existing
+            # consumers of ow_rates.json keep working.
+            "sourceUrl": europe["sourceUrl"],
+            "region": "Europe",
+            "regions": regions_payload,
+            "tier": "All Tiers",
+            "gameMode": "Competitive - Role Queue",
+            "platform": "PC (Mouse & Keyboard)",
+            "disclaimer": "Not affiliated with or endorsed by Blizzard Entertainment",
+            "roles": europe["roles"],
         }
-        
-        total = sum(len(heroes) for heroes in data['roles'].values())
-        
-        if total == 0:
+
+        if sum(len(heroes) for heroes in data["roles"].values()) == 0:
             print("\nERROR: No heroes in final data")
             sys.exit(1)
-        
-        # Verify expected hero counts
-        expected_counts = {'Tank': 15, 'Damage': 24, 'Support': 14}
-        for role, expected in expected_counts.items():
-            actual = len(data['roles'][role])
-            if actual != expected:
-                print(f"\nWARNING: {role} has {actual} heroes, expected {expected}")
-        
-        with open('ow_rates.json', 'w', encoding='utf-8') as f:
+
+        with open("ow_rates.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        
+
         print("\n" + "=" * 70)
-        print(f"SUCCESS! Scraped {total} heroes")
-        print(f"   Tank: {len(data['roles']['Tank'])} heroes")
-        print(f"   Damage: {len(data['roles']['Damage'])} heroes")
-        print(f"   Support: {len(data['roles']['Support'])} heroes")
+        print("SUCCESS! Scraped competitive stats for " + ", ".join(REGIONS))
+        for region in REGIONS:
+            roles = regions_payload[region]["roles"]
+            total = sum(len(heroes) for heroes in roles.values())
+            print(
+                f"   {region}: {total} heroes "
+                f"(Tank {len(roles['Tank'])}, "
+                f"Damage {len(roles['Damage'])}, "
+                f"Support {len(roles['Support'])})"
+            )
         print("Saved to ow_rates.json")
         print("=" * 70)
-        
+
     except Exception as e:
         print(f"\nFATAL ERROR: {e}")
         import traceback
