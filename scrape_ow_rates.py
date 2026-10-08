@@ -178,7 +178,6 @@ DAMAGE_HEROES = [
     "Sierra",
     "Sojourn",
     "Soldier: 76",
-    "Sombra",
     "Symmetra",
     "Torbjörn",
     "Tracer",
@@ -191,6 +190,7 @@ SUPPORT_HEROES = [
     "Ana",
     "Baptiste",
     "Brigitte",
+    "Doctrine",
     "Illari",
     "Jetpack Cat",
     "Juno",
@@ -200,6 +200,7 @@ SUPPORT_HEROES = [
     "Mercy",
     "Mizuki",
     "Moira",
+    "Sombra",
     "Wuyang",
     "Zenyatta",
 ]
@@ -340,7 +341,7 @@ def roles_for(heroes: list[dict], region: str) -> dict[str, list[dict]]:
 
 
 def check_role_counts(roles: dict[str, list[dict]], region: str) -> None:
-    expected_counts = {"Tank": 15, "Damage": 24, "Support": 14}
+    expected_counts = {"Tank": 15, "Damage": 23, "Support": 15}
     for role, expected in expected_counts.items():
         actual = len(roles[role])
         if actual != expected:
