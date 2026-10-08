@@ -341,7 +341,7 @@ def roles_for(heroes: list[dict], region: str) -> dict[str, list[dict]]:
 
 
 def check_role_counts(roles: dict[str, list[dict]], region: str) -> None:
-    expected_counts = {"Tank": 15, "Damage": 23, "Support": 15}
+    expected_counts = {"Tank": 15, "Damage": 23, "Support": 16}
     for role, expected in expected_counts.items():
         actual = len(roles[role])
         if actual != expected:
